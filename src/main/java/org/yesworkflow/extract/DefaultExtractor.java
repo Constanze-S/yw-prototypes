@@ -22,10 +22,12 @@ import org.yesworkflow.annotations.Annotation;
 import org.yesworkflow.annotations.As;
 import org.yesworkflow.annotations.Begin;
 import org.yesworkflow.annotations.Call;
+import org.yesworkflow.annotations.Data;
 import org.yesworkflow.annotations.Desc;
 import org.yesworkflow.annotations.End;
 import org.yesworkflow.annotations.FileUri;
 import org.yesworkflow.annotations.In;
+import org.yesworkflow.annotations.Loc;
 import org.yesworkflow.annotations.Log;
 import org.yesworkflow.annotations.Out;
 import org.yesworkflow.annotations.Param;
@@ -330,6 +332,10 @@ public class DefaultExtractor implements Extractor {
                     case RETURN:    annotation = new Return(id, sourceId, lineNumber, annotationString);
                                     break;
                     case URI:       annotation = new UriAnnotation(id, sourceId, lineNumber, annotationString, primaryAnnotation);
+                                    break;
+                    case LOC:       annotation = new Loc(id, sourceId, lineNumber, annotationString);
+                                    break;   
+                    case DATA:      annotation = new Data(id, sourceId, lineNumber, annotationString);
                                     break;   
                 }
                 

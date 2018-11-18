@@ -20,6 +20,8 @@ import org.yesworkflow.graph.Grapher;
 import org.yesworkflow.model.DefaultModeler;
 import org.yesworkflow.model.Model;
 import org.yesworkflow.model.Modeler;
+import org.yesworkflow.predict.DefaultPredict;
+import org.yesworkflow.predict.Predict;
 import org.yesworkflow.recon.DefaultReconstructor;
 import org.yesworkflow.recon.Reconstructor;
 import org.yesworkflow.recon.Run;
@@ -73,6 +75,7 @@ public class YesWorkflowCLI {
     private Model model = null;
     private YWConfiguration config = null;
     private Reconstructor reconstructor;
+    private Predict predict;
     
     /** Method invoked first when the YesWorkflow CLI is run from the 
      * command line. Creates an instance of {@link YesWorkflowCLI},
@@ -287,6 +290,11 @@ public class YesWorkflowCLI {
                     model();
                     recon();
                     return ExitCode.SUCCESS;
+                    
+                case PREDICT:
+                	extract();
+                	predict();
+                	return ExitCode.SUCCESS;
             }
             
         } catch (YWToolUsageException e) {
@@ -355,7 +363,14 @@ public class YesWorkflowCLI {
         "graph.title                Graph title (defaults to workflow name)"                            + EOL +
         "graph.titleposition        Where to place graph title: TOP, BOTTOM, or HIDE"                   + EOL +
         "graph.view                 Workflow view to render: PROCESS, DATA or COMBINED"                 + EOL +
-        "graph.workflowbox          SHOW or HIDE box around nodes internal to workflow"                 + EOL;
+        "graph.workflowbox          SHOW or HIDE box around nodes internal to workflow"                 + EOL +
+        ""                                                                                              + EOL +
+        "predict.input              Names and values of the variables used for the prediction ((Var1,Val1);(Var2,Val2),...)" + EOL +
+        "predict.output             The name of the variable to be predicted"                           + EOL +
+        "predict.model              Regression model: LINEAR, POLY3, POLY4, POLY5"                      + EOL +
+        "predict.verbose            Enable verbose mose: ON or OFF"                                     + EOL +
+        "predict.python             Absolute path to python executable"                                 + EOL;
+                                
     
     public static final String YW_CLI_EXAMPLES_HELP = 
         "Examples"                                                                                      + EOL +
@@ -433,6 +448,14 @@ public class YesWorkflowCLI {
         reconstructor.configure(config.getSection("recon"))
                      .run(run)
                      .recon();
+    }
+    
+    private void predict() throws Exception {
+        if (predict == null) {
+        	predict = new DefaultPredict(this.ywdb, this.outStream, this.errStream);
+        }
+        
+        predict.configure(config.getSection("predict")).predict().getPrediction();
     }
 
 }
