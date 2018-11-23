@@ -46,8 +46,7 @@ public class DefaultPredict implements Predict {
 	public DefaultPredict configure(String key, Object value) throws Exception {
 		// check for valid 'predict.input' parameter
 		if (key.equalsIgnoreCase("input")) {
-			if (((String) value)
-					.matches("\\([A-Za-z0-9_]+,[0-9]+(.[0-9]+){0,1}\\)(;\\([A-Za-z0-9_]+,[0-9]+(.[0-9]+){0,1}\\))*")) {
+			if (((String) value).matches("\\([A-Za-z0-9_-]+,[0-9]+(.[0-9]+){0,1}\\)(;\\([A-Za-z0-9_-]+,[0-9]+(.[0-9]+){0,1}\\))*")) {
 				input = (String) value;
 			} else {
 				throw new Exception("Parameter 'predict.input' has the wrong format");
@@ -90,42 +89,45 @@ public class DefaultPredict implements Predict {
 			throw new Exception("Multiple source files are not supported");
 		}
 		// only one '@LOC' annotation is allowed
-		if (ywdb.jooq().selectCount().from(Table.ANNOTATION).where(Column.TAG.eq(Tag.LOC.toString())).fetchOne(0,
-				int.class) != 1) {
+		if (ywdb.jooq().selectCount().from(Table.ANNOTATION).where(Column.TAG.eq(Tag.LOC.toString())).fetchOne(0, int.class) != 1) {
 			throw new Exception("There must be one 'LOC' annotation. Multiple 'LOC' annotations are not supported");
+		}
+
+		// check if there is a '@IN', '@OUT' or '@PARAM' for each '@DATA' annotation
+		if (ywdb.jooq().selectCount().from(Table.ANNOTATION)
+				.where(Column.VALUE
+						.notIn(ywdb.jooq().select(Column.VALUE).from(Table.ANNOTATION)
+								.where(Column.TAG.eq(Tag.IN.toString()).or(Column.TAG.eq(Tag.OUT.toString()).or(Column.TAG.eq(Tag.PARAM.toString())))))
+						.and(Column.TAG.eq(Tag.DATA.toString())))
+				.fetchOne(0, int.class) > 0) {
+			throw new Exception("One or more 'DATA' annotations without corresponding 'IN', 'OUT' or 'PARAM' annotation found");
 		}
 
 		// add input variable names
 		List<String> varNames = new ArrayList<String>(
-				Arrays.asList(input.replaceAll(",[0-9]+(.[0-9]+){0,1}\\);\\(", ";")
-						.replaceAll("\\(|,[0-9]+(.[0-9]+){0,1}\\)", "").split(";")));
+				Arrays.asList(input.replaceAll(",[0-9]+(.[0-9]+){0,1}\\);\\(", ";").replaceAll("\\(|,[0-9]+(.[0-9]+){0,1}\\)", "").split(";")));
 		// add output variable name
 		varNames.add(output);
+		
 		// check if there are '@DATA' annotations for all 'predict.input' and
 		// 'predict.output' variables
-		int count = ywdb.jooq().fetchCount(ywdb.jooq().selectDistinct(Column.VALUE).from(Table.ANNOTATION)
-				.where(Column.TAG.eq(Tag.DATA.toString()).and(Column.VALUE.in(varNames))));
-		if (count != varNames.size()) {
-			throw new Exception("Input or output variables without corresponding 'DATA' annotations found");
-		}
-
-		// check if one or more '@DATA' annotations without belonging '@IN', '@OUT'
-		// or '@PARAM' annotation exist
-		if (ywdb.jooq().selectCount().from(Table.ANNOTATION)
-				.where(Column.TAG.eq(Tag.DATA.toString())
-						.and(Column.VALUE.notIn(ywdb.jooq().select(Column.VALUE).from(Table.ANNOTATION)
-								.where(Column.TAG.eq(Tag.PARAM.toString())).or(Column.TAG.eq(Tag.IN.toString()))
-								.or(Column.TAG.eq(Tag.OUT.toString())))))
-				.fetchOne(0, int.class) > 0) {
-			throw new Exception(
-					"One or more 'DATA' annotations without corresponding 'IN', 'OUT' or 'PARAM' annotation found");
+		for (String varName : varNames) {
+			// check for '@DATA' annotation
+			if (ywdb.jooq().selectCount().from(Table.ANNOTATION).where(Column.TAG.eq(Tag.DATA.toString()).and(Column.VALUE.eq(varName))).fetchOne(0,
+					int.class) == 0) {
+				// check for '@AS' annotation
+				if (ywdb.jooq().selectCount().from(Table.ANNOTATION)
+						.where(Column.TAG.eq(Tag.AS.toString()).and(Column.VALUE.eq(varName))
+								.and(Column.QUALIFIES.in(ywdb.jooq().select(Column.ID).from(Table.ANNOTATION).where(Column.TAG.eq(Tag.DATA.toString())))))
+						.fetchOne(0, int.class) == 0) {
+					throw new Exception("No 'DATA' annoation for '" + varName + "' found");
+				}
+			}
 		}
 
 		// check if there is a belonging '@URI' annotation
 		Result<Record> rows = ywdb.jooq().select(Column.ID, Column.VALUE).from(Table.ANNOTATION)
-				.where(Column.QUALIFIES.eq(
-						ywdb.jooq().select(Column.ID).from(Table.ANNOTATION).where(Column.TAG.eq(Tag.LOC.toString()))))
-				.fetch();
+				.where(Column.QUALIFIES.eq(ywdb.jooq().select(Column.ID).from(Table.ANNOTATION).where(Column.TAG.eq(Tag.LOC.toString())))).fetch();
 
 		if (rows.size() != 1) {
 			throw new Exception("No 'URI' annotation for 'LOC' found");
@@ -170,8 +172,7 @@ public class DefaultPredict implements Predict {
 			processBuilder.redirectErrorStream(true);
 			Process process = processBuilder.start();
 
-			StreamConsumer streamConsumer = new StreamConsumer(process.getInputStream(), this.stdoutStream,
-					this.stderrStream);
+			StreamConsumer streamConsumer = new StreamConsumer(process.getInputStream(), this.stdoutStream, this.stderrStream);
 			streamConsumer.start();
 
 			boolean success = process.waitFor(DEFAULT_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
@@ -193,11 +194,11 @@ public class DefaultPredict implements Predict {
 					}
 				} else if (process.exitValue() == 1) {
 					throw new Exception("An error occurred while executing the script");
-				} else if (process.exitValue() == 2) {
-					throw new Exception("No column for one or more input variable names found");
 				} else if (process.exitValue() == 3) {
-					throw new Exception("No column for output variable name found");
+					throw new Exception("No column for one or more input variable names found");
 				} else if (process.exitValue() == 4) {
+					throw new Exception("No column for output variable name found");
+				} else if (process.exitValue() == 5) {
 					throw new Exception("Unknown regression model");
 				} else {
 					throw new Exception("Unhandled exit code " + process.exitValue());
