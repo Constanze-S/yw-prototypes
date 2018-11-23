@@ -9,7 +9,7 @@
     <groupId>org.yesworkflow</groupId>
     <artifactId>yesworkflow</artifactId>
     <version>0.2.1.2</version>
-    <packaging>war</packaging>
+    <packaging>jar</packaging>
 
     <organization>
         <name>YesWorkflow</name>
