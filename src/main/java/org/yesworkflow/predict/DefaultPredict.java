@@ -188,7 +188,7 @@ public class DefaultPredict implements Predict {
 				if (process.exitValue() == 0) {
 					if (streamConsumer.getResult() != -1) {
 						prediction = streamConsumer.getResult();
-						stdoutStream.print("Prediction: " + prediction);
+						stdoutStream.print("Result=" + prediction);
 					} else {
 						stdoutStream.print("No prediction available");
 					}
