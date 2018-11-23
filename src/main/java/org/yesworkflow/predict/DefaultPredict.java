@@ -3,6 +3,9 @@ package org.yesworkflow.predict;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -26,7 +29,6 @@ public class DefaultPredict implements Predict {
 
 	private YesWorkflowDB ywdb;
 	private PrintStream stdoutStream = null;
-	@SuppressWarnings("unused")
 	private PrintStream stderrStream = null;
 	private Double prediction = null;
 	private String input = null;
@@ -42,6 +44,7 @@ public class DefaultPredict implements Predict {
 
 	@Override
 	public DefaultPredict configure(String key, Object value) throws Exception {
+		// check for valid 'predict.input' parameter
 		if (key.equalsIgnoreCase("input")) {
 			if (((String) value)
 					.matches("\\([A-Za-z0-9_]+,[0-9]+(.[0-9]+){0,1}\\)(;\\([A-Za-z0-9_]+,[0-9]+(.[0-9]+){0,1}\\))*")) {
@@ -78,12 +81,15 @@ public class DefaultPredict implements Predict {
 	@SuppressWarnings("unchecked")
 	@Override
 	public Predict predict() throws Exception {
+		// 'predict.input' and 'predict.output' must be set
 		if (input == null || output == null) {
 			throw new Exception("Parameters 'input' and 'output' must be set");
 		}
+		// only one source file is allowed
 		if (ywdb.getRowCount(Table.SOURCE) > 1) {
 			throw new Exception("Multiple source files are not supported");
 		}
+		// only one '@LOC' annotation is allowed
 		if (ywdb.jooq().selectCount().from(Table.ANNOTATION).where(Column.TAG.eq(Tag.LOC.toString())).fetchOne(0,
 				int.class) != 1) {
 			throw new Exception("There must be one 'LOC' annotation. Multiple 'LOC' annotations are not supported");
@@ -95,12 +101,16 @@ public class DefaultPredict implements Predict {
 						.replaceAll("\\(|,[0-9]+(.[0-9]+){0,1}\\)", "").split(";")));
 		// add output variable name
 		varNames.add(output);
+		// check if there are '@DATA' annotations for all 'predict.input' and
+		// 'predict.output' variables
 		int count = ywdb.jooq().fetchCount(ywdb.jooq().selectDistinct(Column.VALUE).from(Table.ANNOTATION)
 				.where(Column.TAG.eq(Tag.DATA.toString()).and(Column.VALUE.in(varNames))));
 		if (count != varNames.size()) {
 			throw new Exception("Input or output variables without corresponding 'DATA' annotations found");
 		}
 
+		// check if one or more '@DATA' annotations without belonging '@IN', '@OUT'
+		// or '@PARAM' annotation exist
 		if (ywdb.jooq().selectCount().from(Table.ANNOTATION)
 				.where(Column.TAG.eq(Tag.DATA.toString())
 						.and(Column.VALUE.notIn(ywdb.jooq().select(Column.VALUE).from(Table.ANNOTATION)
@@ -111,6 +121,7 @@ public class DefaultPredict implements Predict {
 					"One or more 'DATA' annotations without corresponding 'IN', 'OUT' or 'PARAM' annotation found");
 		}
 
+		// check if there is a belonging '@URI' annotation
 		Result<Record> rows = ywdb.jooq().select(Column.ID, Column.VALUE).from(Table.ANNOTATION)
 				.where(Column.QUALIFIES.eq(
 						ywdb.jooq().select(Column.ID).from(Table.ANNOTATION).where(Column.TAG.eq(Tag.LOC.toString()))))
@@ -126,11 +137,20 @@ public class DefaultPredict implements Predict {
 		}
 
 		try {
+			// build cmd command
 			StringBuilder builder = new StringBuilder();
 			if (pythonExecutable != null) {
-				builder.append(pythonExecutable);
-				if (!pythonExecutable.endsWith(System.getProperty("file.separator"))) {
-					builder.append(System.getProperty("file.separator"));
+				try {
+					Path path = Paths.get(pythonExecutable);
+					if (!path.isAbsolute()) {
+						throw new Exception("Path to Python executable is not absolut");
+					}
+					builder.append(path);
+					if (!path.endsWith(System.getProperty("file.separator"))) {
+						builder.append(System.getProperty("file.separator"));
+					}
+				} catch (InvalidPathException ex) {
+					throw new Exception("Path to Python executable could not be processed");
 				}
 			}
 			builder.append("python").append(" ");
@@ -144,6 +164,7 @@ public class DefaultPredict implements Predict {
 				stdoutStream.print("The following command will be executed: " + builder.toString());
 			}
 
+			// execute cmd command
 			ProcessBuilder processBuilder = new ProcessBuilder("cmd", "/C", builder.toString());
 			processBuilder.directory(new File(System.getProperty("user.dir")));
 			processBuilder.redirectErrorStream(true);
