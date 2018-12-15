@@ -5,10 +5,15 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model.base import LinearRegression
 import csv
 
-# exitcode
+# Script for use with the extended YW-prototype
+# as described in the master's thesis, Praediktive Modelle in YesWorkflow.
+# Trains the requested model and returns the prediction.
+
+# exitcodes: 
 # 3=column for input variable not found
 # 4=column for output variable not found
 # 5=unknown regression model
+
 class data:
 
     def __init__(self, my_file, input, output):
@@ -41,7 +46,7 @@ class data:
         print("features: ")
         print(self.__features)
 
-        #get targets
+        # get targets
         if output in header:
             selected_output_column=header.index(output)
         else:
@@ -52,22 +57,27 @@ class data:
         self.__targets = fullarray[:, selected_output_column].astype(float)
         print("targets: ")
         print(self.__targets)
-
+    
+    # returns features and targets as string
     def __str__(self):
         return "Features" + "\n" + str(self.__features) + "\n" + "Targets" + "\n" + str(self.__targets)
 
+    # returns features
     def getFeatures(self, num):
         print("getFeatures")
         for i in range(0, num):
             print(self.__features[i])
         return self.__features[:num]         
     
+    # returns targets
     def getTargets(self, num):
         print("getTargets")     
         for i in range(0, num):
             print(self.__targets[i])
         return self.__targets[:num]          
 
+    # trains a linear regression model for the required feature(s) and target(s)
+    # returns a prediction for the given input
     def doLinearRegression(self):
         dataSize=len(self.__features)
         print("\n\n##################### Linear Regression mit " + str(dataSize) + " Datensaetzen ########################")     
@@ -75,6 +85,8 @@ class data:
         lin_reg.fit(self.__features[:dataSize], self.__targets[:dataSize])
         return lin_reg.predict([self.__input_values])
 
+    # trains a polynomial regression model of the degree given for the required feature(s) and target(s)
+    # returns a prediction for the given input
     def doPolyRegression(self, degree):
         dataSize=len(self.__features)
         print("\n\n##################### Polynomielle Regression Grad" + str(degree) + " mit " + str(dataSize) + " Datensaetzen ########################")
@@ -88,6 +100,7 @@ class data:
         X_test_transform = poly_features.fit_transform(X_test)
         return (poly_model.predict(X_test_transform))
  
+    # calls regression of required type
     def do_Regression(self, regression_model):
         result = -1
         if regression_model == "LIN_REG":

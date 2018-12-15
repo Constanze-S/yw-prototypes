@@ -8,13 +8,15 @@ import os
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import PolynomialFeatures
 
-# Skript um 4 Modelle (polynomielle Regression Grad 5) kombiniert auszuführen
+# script for evaluating the combination of 4 models (all poly reg degree 5) 
+
+# trains and tests the combination of the models for the datasizes given
 def useSuperModel(datasize,cv): 
     foldsize=int(datasize/cv)
-   
-    # Pfad zu der Trainingsdaten CSV-Datei
-    # Die Datei darf keinen Header enthalten.
-    # Um aussagekraeftige Ergebnisse zu erhalten muss die Zeilenfolge in der Datei zufaellig vertauscht werden.
+  
+    # path to the csv-file containing the training data
+    # the file must not contain a header
+    # in order to obtain meaningful results, the line sequence in the file must be swapped randomly
     with open('C:/Users/Conny/Desktop/MAYesWorkflow/PythonSkripte/test_train_data50_mixed.csv' , 'r') as f:        
         reader = csv.reader(f, delimiter=',')            
         full_list = list(reader)
@@ -24,12 +26,12 @@ def useSuperModel(datasize,cv):
         scores=[]
         while i<(datasize):    
             
-            # Trainings- und Testdaten fuer den akutellen Fold setzen
+            # set train- and testdata for current fold
             features1 = fullarray[0:i,3:5].astype(float)
             features2 = fullarray[i+foldsize:datasize,3:5].astype(float)           
             features=np.concatenate((features1, features2), axis=0)  
             
-            # Modell 1 erstellen
+            # train model 1
             targets1 = fullarray[0:i,[6]].astype(float)
             targets2 = fullarray[i+foldsize:datasize,[6]].astype(float)
             targets=np.concatenate((targets1, targets2), axis=0)            
@@ -38,7 +40,7 @@ def useSuperModel(datasize,cv):
             lr1 = lm.LinearRegression()
             lr1.fit(x_transform1, targets)      
             
-            # Modell 2 erstellen
+            # train model 2
             targets1 = fullarray[0:i,[7]].astype(float)
             targets2 = fullarray[i+foldsize:datasize,[7]].astype(float)
             targets=np.concatenate((targets1, targets2), axis=0)             
@@ -47,7 +49,7 @@ def useSuperModel(datasize,cv):
             lr2 = lm.LinearRegression()
             lr2.fit(x_transform2, targets)            
             
-            # Modell 3 erstellen
+            # train model 3
             targets1 = fullarray[0:i,[8]].astype(float)
             targets2 = fullarray[i+foldsize:datasize,[8]].astype(float)
             targets=np.concatenate((targets1, targets2), axis=0)              
@@ -56,7 +58,7 @@ def useSuperModel(datasize,cv):
             lr3 = lm.LinearRegression()
             lr3.fit(x_transform3, targets)
             
-            # Trainigs- und Testdaten fuer Modell 4 setzen
+            # set train- and testdata for model 4
             features1 = fullarray[0:i,6:9].astype(float)
             features2 = fullarray[i+foldsize:datasize,6:9].astype(float)            
             features=np.concatenate((features1, features2), axis=0)
@@ -64,17 +66,17 @@ def useSuperModel(datasize,cv):
             targets2 = fullarray[i+foldsize:datasize,[9]].astype(float)
             targets=np.concatenate((targets1, targets2), axis=0)  
             
-            # Modell 4 erstellen             
+            # train model 4          
             poly_features4 =PolynomialFeatures(5)
             x_transform4=poly_features4.fit_transform(features)
             lr4 = lm.LinearRegression()
             lr4.fit(x_transform4, targets)
             
-            # Features und Target fuer Test des erstellen SuperModells setzen
+            # set features and target for testing the generated supermodel
             features_test = fullarray[i:i+foldsize,3:5].astype(float)
             targets_test = fullarray[i:i+foldsize,[9]].astype(float)            
                 
-            # Modelle koppeln und Vorhersagen erstellen
+            # combine models and generated predictions
             predictedValues=[]
             for feature in features_test:
                 feature_transf = poly_features1.transform(np.array(feature).reshape(1,-1))
@@ -91,7 +93,7 @@ def useSuperModel(datasize,cv):
                 var2=lr4.predict(var_transf)                
                 predictedValues.append(var2[0])
                            
-            # Fehler bestimmen
+            # determine the error
             nmae=median_absolute_error(targets_test[:,0], predictedValues)
             if nmae>0:                
                 nmae=-1*nmae                
@@ -100,9 +102,10 @@ def useSuperModel(datasize,cv):
             scores.append(nmae)
             
         print("Fehlerwerte der 5 Modelle:")
+        # print("errors of the 5 models:")
         print(scores)
         
-        # Fehlerwerte mitteln
+        # determine mean value of the errors
         median_error=0
         for value in scores:
             median_error+=value
@@ -110,17 +113,21 @@ def useSuperModel(datasize,cv):
         
     return median_error
     
+# number of records to evaluate
 dataSizeArray = [10, 15, 20, 25, 30, 35, 40, 45, 50]
 errors=[]
 for size in dataSizeArray:  
     print("\n###### Verwendete Datensaetze: "+ str(size) + " ######" )  
+    # print("\n###### Number of records used: "+ str(size) + " ######" )
     res = useSuperModel(size,5)
     errors.append(res)
     print("Gemittelter Fehlerwert: " + str(res))
+    # print("median error: " + str(res))
 
 plt.plot(dataSizeArray,errors,'md',label="Polynomielle Regression vom Grad 5 für alle Modelle")
+# plt.plot(dataSizeArray,errors,'md',label="Polynomial Regression of 5th degree (all models)")
 
-# Plot konfigurieren
+# configure plot
 ymin=-2000
 ymax=20
 xmin=-2
@@ -129,7 +136,8 @@ label_y="neg. median absolute error"
 plt.legend(loc='lower right')
 plt.grid(True)
 plt.ylabel(label_y)
-plt.xlabel("Anzahl der Datensätze")        
+plt.xlabel("Anzahl der Datensätze")
+# plt.xlabel("Number of records")         
 plt.autoscale(enable=True, axis='both', tight=None)
 plt.xlim(xmin,xmax)
 plt.ylim(ymin,ymax)

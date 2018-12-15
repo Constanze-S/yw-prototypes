@@ -9,38 +9,37 @@ from random import randint
 import re
 
 '''
-Mit YW-Kommentaren versehenes Skript zur Datensammlung bei Proteinkristallen.
-Diese Version enthaelt die im Rahmen der Masterarbeit, Praediktive Modelle in YesWorkflow, neuen Annotationen LOC und DATA
-und erstellt damit eine csv-Datei mit Trainingsdaten. 
-Diese sieht aus wie in der Arbeit beschrieben.
-Die Spalte number_of_raw_image_files_whole_spreadsheet muss, wie in der Arbeit beschrieben, aus den erfassten Daten aggregiert werden. (z.B. mit Excel)
-Zusaetzlich wurde die Laufzeiterfassung fuer die Evaluation ergaenzt (Spalte duration_in_s), daher ohne DATA-Annotation.
-
-Der Code stammt urspruenglich von:
+YW-annotated Python script for data collection from protein crystal samples. 
+This version contains LOC and DATA annotations, as described in the master's thesis, Praediktive Modelle in YesWorkflow.
+Executing the script creates a csv-file containing the training data, as described in the thesis. 
+If the column number_of_raw_image_files_whole_spreadsheet is needed, it has to be aggregated from the directly collected data (for example with Microsoft Excel).
+The column duration_in_s is added only for evaluation purpose. Therefore no corresponding DATA-annotation exists. 
+ 
+This code is basically taken from:
 https://github.com/yesworkflow-org/yw-tapp-15-recon/blob/master/example/simulate_data_collection.py
-Alle Blockkommentare wurden in Zeilenkommentare umgewandelt.
-Die Erstellung der Logfiles ist auskommentiert, um die Laufzeit zu verringern.
-Weitere Veränderungen zu der Originalversion sind in den Kommentaren kenntlich gemacht.
+All block comments have been converted to line comments. 
+To reduce the runtime the creation of the log files is commented out.
+Further changes to the original version are marked in the comments.
 '''
 
 # @begin simulate_data_collection
 
-# hinzugefuegte LOC Annotation:
-# @loc Trainingsdaten @uri file:run/Trainingsdaten.csv
+# added LOC annotation:
+# @loc Trainingsdaten @uri file:python_scripts/test_train_data50_mixed_with_header.csv
 
 # @param cassette_id 
 
-# hinzugefuegte DATA Annotation:
+# added DATA annotation:
 # @data cassette_id 
 
 # @param sample_score_cutoff
 
-# hinzugefuegte DATA Annotation:
+# added DATA annotation:
 # @data sample_score_cutoff
 
 # @in sample_spreadsheet @uri file:cassette_{cassette_id}_spreadsheet.csv
 
-# hinzugefuegte DATA Annotation:
+# added DATA annotation:
 # @data sample_spreadsheet @as number_of_lines_in_sample_spreadsheet
 
 # @in calibration_image  @uri file:calibration.img 
@@ -52,7 +51,9 @@ Weitere Veränderungen zu der Originalversion sind in den Kommentaren kenntlich 
 
 def simulate_data_collection(cassette_id, sample_score_cutoff):
 
-    # train_data hinzugefuegt um Trainingsdaten.csv zu schreiben
+    # train_data_file added for collecting additional information
+    # usually path has to match with path in the LOC annotation
+    # this was ignored at this point for a simpler testing of both examples, that are described in the readme.txt 
     with open('C:/Users/Conny/Desktop/MAYesWorkflow/PythonSkripte/test_train_data50.csv', 'a', newline='') as train_data_file:
         train_data=csv.writer(train_data_file)
         if (os.stat('C:/Users/Conny/Desktop/MAYesWorkflow/PythonSkripte/test_train_data50.csv').st_size == 0):
@@ -77,15 +78,15 @@ def simulate_data_collection(cassette_id, sample_score_cutoff):
             # @in sample_spreadsheet  @uri file:cassette_{cassette_id}_spreadsheet.csv
             # @out sample_name 
             
-            # hinzugefuegte DATA Annotation:
+            # added DATA annotation:
             # @data sample_name 
             
             # @out sample_quality
             
-            # hinzugefuegte DATA Annotation:
+            # added DATA annotation:
             # @data sample_quality
             
-            # Pfad zu sample_spreadsheet-Dateien angepasst
+            # path to sample_spreadsheet-files adjusted
             sample_spreadsheet = '50sample_spreadsheets/cassette_{0}_spreadsheet.csv'.format(cassette_id)
             for sample_name, sample_quality in spreadsheet_rows(sample_spreadsheet):
                 start_sample = time.time()
@@ -102,30 +103,30 @@ def simulate_data_collection(cassette_id, sample_score_cutoff):
                 # @in sample_quality
                 # @out accepted_sample 
                 
-                # hinzugefuegte DATA Annotation:
+                # added DATA annotation:
                 # @data accepted_sample
                 
                 # @out rejected_sample 
                 
-                # hinzugefuegte DATA Annotation:
+                # added DATA annotation:
                 # @data rejected_sample
                 
                 
                 # @out num_images
 
-                # hinzugefuegte DATA Annotation:
+                # added DATA annotation:
                 # @data num_images
                 
                 # @out energies
                 
-                # hinzugefuegte DATA Annotation:
+                # added DATA annotation:
                 # @data energies @as size_of_energies
                 
                 if sample_quality >= sample_score_cutoff: 
                     accepted_sample = sample_name
                     rejected_sample = None
                     num_images = sample_quality + 2
-                    # cast zu int hinzugefuegt
+                    # cast to int necessary for newer version
                     energies = [10000, 11000, 12000, 13000, 14000][:int(sample_quality/sample_score_cutoff)]
                     acc_sample = 1
                     rej_sample = 0
@@ -169,7 +170,7 @@ def simulate_data_collection(cassette_id, sample_score_cutoff):
                 # out raw_image_path @as raw_image 
                      # @uri file:run/raw/{cassette_id}/{sample_id}/e{energy}/image_{frame_number}.raw
 
-                # hinzugefuegte DATA Annotation:
+                # added DATA annotation:
                 # @data raw_image_path @as number_of_raw_image-files
                 
                 # run_log.write("Collecting data set for sample {0}".format(accepted_sample))
@@ -340,21 +341,21 @@ class new_image_file:
 if __name__ == '__main__':
     
     '''
-    # Originalversion
+    # original version:
     cassette_id = 'q55'
     sample_score_cutoff = 12
     simulate_data_collection(cassette_id, sample_score_cutoff)
     '''
 
-    # Debug-Ausgaben
+    # Debug-Output
     debug = True
     
-    # Bearbeitet alle zufällig generierten sample_spreadsheet-Dateien 
+    # runs over all random generated spreadsheet-files 
     for file in (os.listdir('C:/Users/Conny/Desktop/MAYesWorkflow/PythonSkripte/50sample_spreadsheets')):    
         cassette_id = re.search('q\d+', file).group()        
         sample_score_cutoff = randint(1,50) 
         
-        # zusaetzliche Laufzeiterfassung nur fuer Evaluation
+        # runtime logging - only for evaluation purpose
         start_spreadsheet = time.time()
         
         if debug:
@@ -362,7 +363,6 @@ if __name__ == '__main__':
         
         simulate_data_collection(cassette_id, sample_score_cutoff)
         
-        # zusaetzliche Laufzeiterfassung fuer Evaluation
         end_spreadsheet = time.time()        
         with open('C:/Users/Conny/Desktop/MAYesWorkflow/PythonSkripte/50sample_spreadsheets.csv', 'a', newline='') as time_log_file:
             time_log=csv.writer(time_log_file)

@@ -3,11 +3,11 @@ from random import randint
 import csv
 import os
 
-# erstellt sample_spreadsheet-Datein mit Zufallszahlen
+# generates random sample_spreadsheet-files
 if __name__ == '__main__':
-    # Anzahl der sample_spreadsheet-Dateien, die erstellt werden sollen
+    # number of sample_spreadsheet files to create
     count=50
-    dir='C:/Users/Conny/Desktop/MAYesWorkflow/PythonSkripte/{0}'.format(str(count)+'sample_spreadsheets')	
+    dir='C:/Users/Conny/Desktop/MAYesWorkflow/PythonSkripte/{0}'.format(str(count)+'sample_spreadsheets')    
     os.makedirs(dir)
         
     for j in range(0,count):

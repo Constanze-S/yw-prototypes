@@ -450,6 +450,12 @@ public class YesWorkflowCLI {
                      .recon();
     }
     
+	/**
+	 * This method executes the prediction of a numerical value. The configuration
+	 * parameters are set before.
+	 * 
+	 * @throws Exception If an error occurs, an exception is thrown.
+	 */
     private void predict() throws Exception {
         if (predict == null) {
         	predict = new DefaultPredict(this.ywdb, this.outStream, this.errStream);
