@@ -87,7 +87,7 @@ def simulate_data_collection(cassette_id, sample_score_cutoff):
             # @data sample_quality
             
             # path to sample_spreadsheet-files adjusted
-            sample_spreadsheet = '50sample_spreadsheets/cassette_{0}_spreadsheet.csv'.format(cassette_id)
+            sample_spreadsheet = 'C:/Users/Conny/Desktop/MAYesWorkflow/PythonSkripte/50sample_spreadsheets/cassette_{0}_spreadsheet.csv'.format(cassette_id)
             for sample_name, sample_quality in spreadsheet_rows(sample_spreadsheet):
                 start_sample = time.time()
                 rawimage_counter = 0

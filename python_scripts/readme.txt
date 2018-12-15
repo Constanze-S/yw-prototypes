@@ -13,7 +13,7 @@ Toy example for evaluation:
 Use of the extended YW-prototype:
 - ! Mind the paths !
 	- Especially path to the Python script (default_regression_script.py) executing the prediction! It refers to test_train_data50_mixed_with_header.csv as training data, so that a small amount of training data is already available. 
-- Example YW-command: predict C:/<YOUR PATH>/simulate_data_collection_with_data_and_loc_annotation.py -c predict.input=(number_of_lines_in_sample_spreadsheet,30);(sample_score_cutoff,5);(size_of_energies,4) -c predict.output=number_of_raw_image-files -c predict.model=poly3 -c predict.verbose=on
+- Example YW-command: predict C:/<YOUR PATH>/simulate_data_collection_with_data_and_loc_annotation.py -c predict.input=(number_of_lines_in_sample_spreadsheet,30);(sample_score_cutoff,5);(size_of_energies,4) -c predict.output=number_of_raw_image-files -c predict.model=poly3 -c predict.verbose=on -c predict.python=C:/<YOUR PATH>/python
 	1. Searches the script C:/<YOUR PATH>/simulate_data_collection_with_data_and_loc_annotation.py for the contained LOC-annotation
 	2. Uses the training data, which is specified by the LOC-annotation, for training a polynomial regression model of 3rd degree
 	3. Uses this model to predict the target (number_of_raw_image-files) for the given features (number_of_lines_in_sample_spreadsheet = 30 and sample_score_cutoff = 5)
